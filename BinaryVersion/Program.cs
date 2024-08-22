@@ -2,6 +2,7 @@
 using System.IO;
 using System.Text;
 using Newtonsoft.Json;
+using static BinaryVersion.Program;
 
 namespace BinaryVersion
 {
@@ -16,7 +17,6 @@ namespace BinaryVersion
 
         public class BinaryVersionData
         {
-            public byte Idk { get; set; }
             public string Branch { get; set; }
             public uint Revision { get; set; }
             public uint MajorVersion { get; set; }
@@ -70,44 +70,31 @@ namespace BinaryVersion
             var BinaryVersionBytes = File.ReadAllBytes(BinaryVersionPath);
             using var ms = new MemoryStream(BinaryVersionBytes);
             using var br = new EndianBinaryReader(ms, Encoding.UTF8);
+            BinaryVersionData binaryVersionData = new();
 
-            var data = new BinaryVersionData
+            foreach (var i in typeof(BinaryVersionData).GetProperties())
             {
-                Idk = br.ReadByte(),
-                Branch = br.ReadString(),
-                Revision = br.ReadUInt32BE(),
-                MajorVersion = br.ReadUInt32BE(),
-                MinorVersion = br.ReadUInt32BE(),
-                PatchVersion = br.ReadUInt32BE(),
-                KJLNPMBMHPP = br.ReadUInt32BE(),
-                BEHBCIGKAIA = br.ReadUInt32BE(),
-                DNHBBFJNFIA = br.ReadUInt32BE(),
-                JOGEBFOIHBA = br.ReadUInt32BE(),
-                KAHDPOCKEOK = br.ReadUInt32BE(),
-                DKAEGGDFNCE = br.ReadUInt32BE(),
-                IKGBOMPEEFK = br.ReadUInt32BE(),
-                KIIALDBNPGF = br.ReadUInt32BE(),
-                EAOFFMBMFEB = br.ReadUInt32BE(),
-                PBIENIGLJFK = br.ReadUInt32BE(),
-                FMOFDMGBLKN = br.ReadUInt32BE(),
-                NHLEELPBMPB = br.ReadUInt32BE(),
-                DIECOIPHCFH = br.ReadUInt32BE(),
-                MLBMIOPJKDN = br.ReadUInt32BE(),
-                AIJCAACHKPA = br.ReadUInt32BE(),
-                Time = ReadCustomString(br),
-                PakType = ReadCustomString(br),
-                PakTypeDetail = ReadCustomString(br),
-                StartAsset = ReadCustomString(br),
-                StartDesignData = ReadCustomString(br),
-                DispatchSeed = ReadCustomString(br),
-                VersionString = ReadCustomString(br),
-                VersionHash = ReadCustomString(br),
-                GameCoreVersion = br.ReadUInt32BE(),
-                IsEnableExcludeAsset = br.ReadBoolean(),
-                Sdk_PS_Client_Id = ReadCustomString(br)
-            };
+                switch (i.PropertyType)
+                {
+                    case Type t when t == typeof(byte):
+                        i.SetValue(binaryVersionData, br.ReadByte());
+                        break;
+                    case Type t when t == typeof(uint):
+                        i.SetValue(binaryVersionData, br.ReadUInt32BE());
+                        break;
+                    case Type t when t == typeof(string):
+                        i.SetValue(binaryVersionData, ReadCustomString(br));
+                        break;
+                    case Type t when t == typeof(bool):
+                        i.SetValue(binaryVersionData, br.ReadBoolean());
+                        break;
+                    default:
+                        // should NOT happen
+                        throw new NotSupportedException("Stupid happened :(");
+                }
+            }
 
-            string jsonStr = JsonConvert.SerializeObject(data, Formatting.Indented);
+            string jsonStr = JsonConvert.SerializeObject(binaryVersionData, Formatting.Indented);
             File.WriteAllText("BinaryVersion.json", jsonStr);
             Console.WriteLine("Parsing complete, the data will be saved in BinaryVersion.json.");
         }
